@@ -246,6 +246,11 @@ type leetOptions struct {
 	symonMode        bool
 	symonInterval    time.Duration
 	wandbDir         string
+
+	baseUrl          string
+	entity           string
+	project          string
+	runId            string
 }
 
 func parseLeetOptions(args []string) (leetOptions, error) {
@@ -301,6 +306,30 @@ func bindLeetFlags(fs *flag.FlagSet, opts *leetOptions) {
 		leet.DefaultSymonSamplingInterval,
 		"Sampling interval for standalone system metrics (e.g. 500ms, 2s, 1m).",
 	)
+	fs.StringVar(
+		&opts.baseUrl,
+		"base-url",
+		"",
+		"Specifies the base URL of the W&B server for querying remote runs.",
+	)
+	fs.StringVar(
+		&opts.entity,
+		"entity",
+		"",
+		"Specifies the entity who owns the run.",
+	)
+	fs.StringVar(
+		&opts.project,
+		"project",
+		"",
+		"Specifies the project the remote run belongs to.",
+	)
+	fs.StringVar(
+		&opts.runId,
+		"run-id",
+		"",
+		"Specifies the run ID of the remote run.",
+	)
 }
 
 func printLeetUsage(fs *flag.FlagSet) {
@@ -314,11 +343,10 @@ Usage:
   wandb-core leet [flags] <wandb-file/wandb-run-path>
 
 Arguments:
-  <wandb-file/wandb-run-path> Path to the .wandb file of a W&B run or a W&B run path.
-		When a run path is prefixed with "wandb://", the run metrics are read from the W&B backend.
+  <wandb-file> Path to the .wandb file of a W&B run or a W&B run path.
 		Example:
 		  /path/to/.wandb/run-20250731_170606-iazb7i1k/run-iazb7i1k.wandb
-		  wandb://wandbUser/wandbProject/run-1234567890
+	If
 
 Options:
   -h, --help         Show this help message
@@ -464,11 +492,31 @@ func runSymon(opts leetOptions, logger *observability.CoreLogger) int {
 }
 
 func runLeetWorkspace(opts leetOptions, logger *observability.CoreLogger) int {
+	var runParams *leet.RunParams
+	wandbDir := opts.wandbDir
+	if opts.baseUrl != "" {
+		wandbDir = opts.baseUrl
+		runParams = &leet.RunParams{
+			RemoteRunParams: &leet.RemoteRunParams{
+				BaseURL: opts.baseUrl,
+				Entity:  opts.entity,
+				Project: opts.project,
+				RunId:   opts.runId,
+			},
+		}
+	} else if opts.runFile != "" {
+		runParams = &leet.RunParams{
+			LocalRunParams: &leet.LocalRunParams{
+				RunFile: opts.runFile,
+			},
+		}
+	}
+
 	for {
 		m := leet.NewModel(leet.ModelParams{
-			WandbDir: opts.wandbDir,
-			RunFile:  opts.runFile,
-			Logger:   logger,
+			WandbDir:  wandbDir,
+			RunParams: runParams,
+			Logger:    logger,
 		})
 		program := tea.NewProgram(m)
 
