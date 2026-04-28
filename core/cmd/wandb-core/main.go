@@ -365,7 +365,7 @@ func validateLeetOptions(fs *flag.FlagSet, opts leetOptions) error {
 		fmt.Fprintln(os.Stderr, "Error: --symon does not take a wandb directory")
 		fs.Usage()
 		return fmt.Errorf("unexpected wandb directory %q in symon mode", fs.Arg(0))
-	case !opts.editConfig && !opts.symonMode && opts.wandbDir == "":
+	case !opts.editConfig && !opts.symonMode && opts.baseUrl == "" && opts.wandbDir == "":
 		fmt.Fprintln(os.Stderr, "Error: wandb directory path required")
 		fs.Usage()
 		return fmt.Errorf("wandb directory path required")
@@ -492,7 +492,14 @@ func runSymon(opts leetOptions, logger *observability.CoreLogger) int {
 }
 
 func runLeetWorkspace(opts leetOptions, logger *observability.CoreLogger) int {
-	modelParams, err := leet.CreateModelParams(opts, logger)
+	startupArgs := &leet.StartupArgs{
+		BaseURL: &opts.baseUrl,
+		Entity:  &opts.entity,
+		Project: &opts.project,
+		RunId:   &opts.runId,
+		WandbDir: opts.wandbDir,
+	}
+	modelParams, err := leet.CreateModelParams(startupArgs, logger)
 	if err != nil {
 		logger.Error("main: failed to create model params", "error", err)
 		// Assuming opts has a Usage method analogous to startupArgs. Adjust if not.
@@ -502,36 +509,8 @@ func runLeetWorkspace(opts leetOptions, logger *observability.CoreLogger) int {
 		return exitCodeErrorArgs
 	}
 
-	wandbDir := opts.wandbDir
-
 	for {
-		m := leet.NewModel(leet.ModelParams{
-			WandbDir:  wandbDir,
-			RunParams: modelParams.RunParams,
-			Logger:    logger,
-		})
-		program := tea.NewProgram(m)
-
-		finalModel, err := program.Run()
-		if err != nil {
-			logger.CaptureError(fmt.Errorf("wandb-leet: %v", err))
-			return exitCodeErrorInternal
-		}
-
-		if fm, ok := finalModel.(*leet.Model); ok && fm.ShouldRestart() {
-			continue
-		}
-		return exitCodeSuccess
-	}
-}
-
-
-	for {
-		m := leet.NewModel(leet.ModelParams{
-			WandbDir:  wandbDir,
-			RunParams: runParams,
-			Logger:    logger,
-		})
+		m := leet.NewModel(*modelParams)
 		program := tea.NewProgram(m)
 
 		finalModel, err := program.Run()
