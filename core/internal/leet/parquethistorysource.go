@@ -93,12 +93,8 @@ func NewParquetHistorySource(
 	httpClient api.RetryableClient,
 	runInfo *RunInfo,
 	logger *observability.CoreLogger,
+	rustArrowWrapper *ffi.RustArrowWrapper,
 ) (*ParquetHistorySource, error) {
-	rustArrowWrapper, err := ffi.NewRustArrowWrapper()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create rust arrow wrapper: %w", err)
-	}
-
 	historyReader, err := runhistoryreader.New(
 		context.Background(),
 		entity,
@@ -167,6 +163,11 @@ func InitializeParquetHistorySource(
 			return ErrorMsg{Err: err}
 		}
 
+		rustArrowWrapper, err := ffi.NewRustArrowWrapper()
+		if err != nil {
+			return ErrorMsg{Err: fmt.Errorf("failed to create rust arrow wrapper: %w", err)}
+		}
+
 		source, err := NewParquetHistorySource(
 			entity,
 			project,
@@ -175,6 +176,7 @@ func InitializeParquetHistorySource(
 			httpClient,
 			runInfo,
 			logger,
+			rustArrowWrapper,
 		)
 		if err != nil {
 			return ErrorMsg{Err: err}

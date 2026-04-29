@@ -13,7 +13,7 @@ import (
 func TestRunHandleRecordMsg_DoesNotArmHeartbeatBeforeWatcherStarts(t *testing.T) {
 	logger := observability.NewNoOpLogger()
 	cfg := leet.NewConfigManager(filepath.Join(t.TempDir(), "config.json"), logger)
-	run := leet.NewRun("dummy", cfg, logger)
+	run := leet.NewRun(&leet.RunParams{LocalRunParams: &leet.LocalRunParams{RunFile: "dummy"}}, cfg, logger)
 
 	_, _ = run.TestHandleRecordMsg(leet.RunMsg{ID: "run-1", DisplayName: "test"})
 	_, _ = run.TestHandleRecordMsg(leet.HistoryMsg{
@@ -28,7 +28,7 @@ func TestRunHandleRecordMsg_DoesNotArmHeartbeatBeforeWatcherStarts(t *testing.T)
 func TestRunHandleRecordMsg_ArmsHeartbeatAfterWatcherStarts(t *testing.T) {
 	logger := observability.NewNoOpLogger()
 	cfg := leet.NewConfigManager(filepath.Join(t.TempDir(), "config.json"), logger)
-	run := leet.NewRun("dummy", cfg, logger)
+	run := leet.NewRun(&leet.RunParams{LocalRunParams: &leet.LocalRunParams{RunFile: "dummy"}}, cfg, logger)
 
 	_, _ = run.TestHandleRecordMsg(leet.RunMsg{ID: "run-1", DisplayName: "test"})
 	run.TestSetWatcherStarted(true)
@@ -45,7 +45,7 @@ func TestRunHandleRecordMsg_ArmsHeartbeatAfterWatcherStarts(t *testing.T) {
 func TestWorkspaceHandleWorkspaceRecord_DoesNotArmHeartbeatBeforeWatcherStarts(t *testing.T) {
 	logger := observability.NewNoOpLogger()
 	cfg := leet.NewConfigManager(filepath.Join(t.TempDir(), "config.json"), logger)
-	workspace := leet.NewWorkspace(t.TempDir(), cfg, logger)
+	workspace := leet.NewWorkspace(leet.NewLocalWorkspaceBackend(t.TempDir(), logger), cfg, logger)
 
 	run := leet.TestNewWorkspaceRun("run-1")
 	workspace.TestAttachRun(run, true)
@@ -63,7 +63,7 @@ func TestWorkspaceHandleWorkspaceRecord_DoesNotArmHeartbeatBeforeWatcherStarts(t
 func TestWorkspaceHandleWorkspaceRecord_ArmsHeartbeatAfterWatcherStarts(t *testing.T) {
 	logger := observability.NewNoOpLogger()
 	cfg := leet.NewConfigManager(filepath.Join(t.TempDir(), "config.json"), logger)
-	workspace := leet.NewWorkspace(t.TempDir(), cfg, logger)
+	workspace := leet.NewWorkspace(leet.NewLocalWorkspaceBackend(t.TempDir(), logger), cfg, logger)
 
 	run := leet.TestNewWorkspaceRun("run-1")
 	run.TestSetWatcherStarted(true)

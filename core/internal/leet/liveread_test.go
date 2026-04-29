@@ -41,7 +41,7 @@ func TestReadRecords_PassesThroughArguments(t *testing.T) {
 func TestRun_ReadLiveBatchCmd_WrapsChunkedBatchAndUsesLiveLimits(t *testing.T) {
 	logger := observability.NewNoOpLogger()
 	cfg := leet.NewConfigManager(filepath.Join(t.TempDir(), "config.json"), logger)
-	r := leet.NewRun("dummy", cfg, logger)
+	r := leet.NewRun(&leet.RunParams{LocalRunParams: &leet.LocalRunParams{RunFile: "dummy"}}, cfg, logger)
 
 	src := &stubHistorySource{
 		msg: leet.ChunkedBatchMsg{
@@ -67,7 +67,7 @@ func TestRun_ReadLiveBatchCmd_WrapsChunkedBatchAndUsesLiveLimits(t *testing.T) {
 func TestRun_ReadLiveBatchCmd_DropsEmptyChunk(t *testing.T) {
 	logger := observability.NewNoOpLogger()
 	cfg := leet.NewConfigManager(filepath.Join(t.TempDir(), "config.json"), logger)
-	r := leet.NewRun("dummy", cfg, logger)
+	r := leet.NewRun(&leet.RunParams{LocalRunParams: &leet.LocalRunParams{RunFile: "dummy"}}, cfg, logger)
 
 	src := &stubHistorySource{msg: leet.ChunkedBatchMsg{}}
 	require.Nil(t, r.ReadLiveBatchCmd(src)())
@@ -76,7 +76,7 @@ func TestRun_ReadLiveBatchCmd_DropsEmptyChunk(t *testing.T) {
 func TestWorkspace_ReadAvailableCmd_WrapsChunkedBatch(t *testing.T) {
 	logger := observability.NewNoOpLogger()
 	cfg := leet.NewConfigManager(filepath.Join(t.TempDir(), "config.json"), logger)
-	w := leet.NewWorkspace(t.TempDir(), cfg, logger)
+	w := leet.NewWorkspace(leet.NewLocalWorkspaceBackend(t.TempDir(), logger), cfg, logger)
 
 	src := &stubHistorySource{
 		msg: leet.ChunkedBatchMsg{
@@ -104,7 +104,7 @@ func TestWorkspace_ReadAvailableCmd_WrapsChunkedBatch(t *testing.T) {
 func TestWorkspace_ReadAvailableCmd_DropsEmptyChunk(t *testing.T) {
 	logger := observability.NewNoOpLogger()
 	cfg := leet.NewConfigManager(filepath.Join(t.TempDir(), "config.json"), logger)
-	w := leet.NewWorkspace(t.TempDir(), cfg, logger)
+	w := leet.NewWorkspace(leet.NewLocalWorkspaceBackend(t.TempDir(), logger), cfg, logger)
 
 	run := &leet.WorkspaceRun{Key: "run-1", Reader: &stubHistorySource{msg: leet.ChunkedBatchMsg{}}}
 	require.Nil(t, w.ReadAvailableCmd(run)())
